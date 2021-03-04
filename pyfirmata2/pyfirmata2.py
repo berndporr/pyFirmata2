@@ -89,7 +89,7 @@ class Board(object):
     _parsing_sysex = False
     AUTODETECT = None
 
-    def __init__(self, port, layout=None, baudrate=57600, name=None, timeout=None):
+    def __init__(self, port, layout=None, baudrate=115200, name=None, timeout=None):
         if port == self.AUTODETECT:
             l = serial.tools.list_ports.comports()
             if l:
@@ -100,9 +100,9 @@ class Board(object):
                 elif platform == "win32":
                     comports = []
                     for d in l:
-                        if d.vid:
-                            devname = str(d.device)
-                            comports.append(devname)
+                        #if d.vid: d.vid is None in my PC with win10
+                        devname = str(d.device)
+                        comports.append(devname)
                     comports.sort()
                     port = comports[0]
                 else:
