@@ -588,7 +588,7 @@ class Pin(object):
         if self.mode == UNAVAILABLE:
             raise IOError("Cannot read pin {0}".format(self.__str__()))
         if (self.mode is INPUT) or (self.mode is INPUT_PULLUP) or (self.type == ANALOG):
-            warnings.warn("Use a callback handler for pin {0}".format(self.__str__()))
+            raise IOError("Reading via polling is not supported by this library. Please use the original pyfirmata.")
         return self.value
 
     def register_callback(self, _callback):
