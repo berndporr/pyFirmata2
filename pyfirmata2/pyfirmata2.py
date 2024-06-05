@@ -107,7 +107,8 @@ class Board(object):
                                 devname = str(d.device)
                                 comports.append(devname)
                     comports.sort()
-                    port = comports[0]
+                    if len(comports) > 0:
+                        port = comports[0]
                 else:
                     for d in l:
                         if d.vid:
