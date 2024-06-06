@@ -103,7 +103,7 @@ class Board(object):
                     comports = []
                     for d in l:
                         if d.device:
-                            if ("USB" in d.description) or (not d.description):
+                            if ("USB" in d.description) or (not d.description) or ("Arduino" in d.description):
                                 devname = str(d.device)
                                 comports.append(devname)
                     comports.sort()
