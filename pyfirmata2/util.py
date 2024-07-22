@@ -104,11 +104,11 @@ def from_two_bytes(bytes):
         except TypeError:
             pass
         return msb << 7 | lsb
+    
 
-
-def two_byte_iter_to_str(bytes):
+def two_byte_iter_to_bytes(bytes):
     """
-    Return a string made from a list of two byte chars.
+    Return a bytearray made from a list of two byte chars.
     """
     bytes = list(bytes)
     chars = bytearray()
@@ -119,6 +119,14 @@ def two_byte_iter_to_str(bytes):
         except IndexError:
             msb = 0x00
         chars.append(from_two_bytes([lsb, msb]))
+    return chars
+
+
+def two_byte_iter_to_str(bytes):
+    """
+    Return a string made from a list of two byte chars.
+    """
+    chars = two_byte_iter_to_bytes(bytes)
     return chars.decode()
 
 
