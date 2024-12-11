@@ -97,7 +97,7 @@ class Board(object):
     :arg debug: Enable debug
     :type debug: bool
     """
-    name: str|None
+    name: str|None = None
     firmata_version = None
     firmware = None
     firmware_version = None
@@ -571,7 +571,7 @@ class Pin(object):
     board: Board
     pin_number: int
     type: int
-    port: Port|None
+    port: Port|None = None
     PWM_CAPABLE = False
     reporting: bool = False
     value = None
