@@ -419,15 +419,15 @@ class Board(object):
 
     def exit(self):
         """Call this to exit cleanly."""
-        if hasattr(self, 'analog'):
+        if hasattr(self, 'analog') and self.analog is not None:
             for a in self.analog:
                 a.disable_reporting()
-        if hasattr(self, 'digital'):
+        if hasattr(self, 'digital') and self.digital is not None:
             for d in self.digital:
                 d.disable_reporting()
         self.samplingOff()
         # First detach all servo's, otherwise it somehow doesn't want to close...
-        if hasattr(self, 'digital'):
+        if hasattr(self, 'digital') and self.digital is not None:
             for pin in self.digital:
                 if pin.mode == SERVO:
                     pin.mode = OUTPUT
