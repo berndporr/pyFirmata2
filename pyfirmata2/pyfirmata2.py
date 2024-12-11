@@ -81,7 +81,23 @@ class NoInputWarning(RuntimeWarning):
 
 
 class Board(object):
-    """The Base class for any board."""
+    """
+    The Base class for any board.
+    Note: Only use when you know what you're doing
+
+    :arg port: Port, string containing the COM port reference or AUTODETECT
+    :type port: str|None
+    :arg layout: Layout of the board
+    :arg baudrate: Baudrate to use for the serial connection
+    :type baudrate: int
+    :arg name: Name of the board
+    :type name: str|None
+    :arg timeout: Timeout in seconds or None
+    :type timeout: int|None
+    :arg debug: Enable debug
+    :type debug: bool
+    """
+    name: str|None
     firmata_version = None
     firmware = None
     firmware_version = None
@@ -90,8 +106,12 @@ class Board(object):
     _stored_data = []
     _parsing_sysex = False
     AUTODETECT = None
+    analog: list['Pin']|None = None
+    digital: list['Pin']|None = None
+    digital_ports: list['Port']|None = None
+    sp: serial.Serial
 
-    def __init__(self, port, layout=None, baudrate=57600, name=None, timeout=None, debug=False):
+    def __init__(self, port: str|None, layout=None, baudrate=57600, name: str|None=None, timeout=None, debug=False):
         if port == self.AUTODETECT:
             l = serial.tools.list_ports.comports()
             if l:
@@ -153,7 +173,7 @@ class Board(object):
         """
         self.exit()
 
-    def send_as_two_bytes(self, val):
+    def send_as_two_bytes(self, val: int):
         self.sp.write(bytearray([val % 128, val >> 7]))
 
     def setup_layout(self, board_layout):
@@ -243,7 +263,7 @@ class Board(object):
         func = add_meta(func)
         self._command_handlers[cmd] = func
 
-    def get_pin(self, pin_def):
+    def get_pin(self, pin_def: str):
         """
         Returns the activated pin given by the pin definition.
         May raise an ``InvalidPinDefError`` or a ``PinAlreadyTakenError``.
@@ -251,13 +271,14 @@ class Board(object):
         :arg pin_def: Pin definition as described below,
             but without the arduino name. So for example ``a:1:i``.
 
-        'a' analog pin     Pin number   'i' for input
-        'd' digital pin    Pin number   'o' for output
-                                        'p' for pwm (Pulse-width modulation)
-                                        's' for servo
-                                        'u' for input with pull-up resistor enabled
+            'a' analog pin     Pin number   'i' for input
+            'd' digital pin    Pin number   'o' for output
+                                            'p' for pwm (Pulse-width modulation)
+                                            's' for servo
+                                            'u' for input with pull-up resistor enabled
 
-        All seperated by ``:``.
+            All seperated by ``:``.
+        :type pin_def: str
         """
         if type(pin_def) == list:
             bits = pin_def
@@ -296,18 +317,25 @@ class Board(object):
             pin.enable_reporting()
         return pin
 
-    def __pass_time(self, t):
-        """Non-blocking time-out for ``t`` seconds."""
+    def __pass_time(self, t: int):
+        """
+        Non-blocking time-out for ``t`` seconds.
+
+        :arg t: Time to wait in seconds
+        :type t: int
+        """
         cont = time.time() + t
         while time.time() < cont:
             time.sleep(0)
 
-    def send_sysex(self, sysex_cmd, data):
+    def send_sysex(self, sysex_cmd: int, data: bytearray):
         """
         Sends a SysEx msg.
 
         :arg sysex_cmd: A sysex command byte
-        : arg data: a bytearray of 7-bit bytes of arbitrary data
+        :type sysex_cmd: int
+        :arg data: a bytearray of 7-bit bytes of arbitrary data
+        :type data: bytearray
         """
         msg = bytearray([START_SYSEX, sysex_cmd])
         msg.extend(data)
@@ -367,7 +395,7 @@ class Board(object):
         """
         return self.firmata_version
 
-    def servo_config(self, pin, min_pulse=544, max_pulse=2400, angle=0):
+    def servo_config(self, pin: int, min_pulse=544, max_pulse=2400, angle=0):
         """
         Configure a pin as servo with min_pulse, max_pulse and first angle.
         ``min_pulse`` and ``max_pulse`` default to the arduino defaults.
@@ -391,10 +419,12 @@ class Board(object):
 
     def exit(self):
         """Call this to exit cleanly."""
-        for a in self.analog:
-            a.disable_reporting()
-        for d in self.digital:
-            d.disable_reporting()
+        if hasattr(self, 'analog'):
+            for a in self.analog:
+                a.disable_reporting()
+        if hasattr(self, 'digital'):
+            for d in self.digital:
+                d.disable_reporting()
         self.samplingOff()
         # First detach all servo's, otherwise it somehow doesn't want to close...
         if hasattr(self, 'digital'):
@@ -406,7 +436,7 @@ class Board(object):
                 self.sp.close()
 
     # Command handlers
-    def _handle_analog_message(self, pin_nr, lsb, msb):
+    def _handle_analog_message(self, pin_nr: int, lsb: int, msb: int):
         value = round(float((msb << 7) + lsb) / 1023, 4)
         # Only set the value if we are actually reporting
         try:
@@ -417,7 +447,7 @@ class Board(object):
         except IndexError:
             raise ValueError
 
-    def _handle_digital_message(self, port_nr, lsb, msb):
+    def _handle_digital_message(self, port_nr: int, lsb: int, msb: int):
         """
         Digital messages always go by the whole port. This means we have a
         bitmask which we update the port.
@@ -455,11 +485,24 @@ class Board(object):
 
 
 class Port(object):
-    """An 8-bit port on the board."""
-    def __init__(self, board, port_number, num_pins=8):
+    """
+    An 8-bit port on the board.
+
+    :arg board: The board of this port
+    :type board: Board
+    :arg port_number: Port number of the port
+    :type port_number: int
+    :arg num_pins: Amount of pins from the port_number
+    :type num_pins: int
+    """
+    board: Board
+    port_number: int
+    pins: list['Pin']
+    reporting = False
+
+    def __init__(self, board: Board, port_number: int, num_pins=8):
         self.board = board
         self.port_number = port_number
-        self.reporting = False
 
         self.pins = []
         for i in range(num_pins):
@@ -513,17 +556,33 @@ class Port(object):
 
 
 class Pin(object):
-    """A Pin representation"""
-    def __init__(self, board, pin_number, type=ANALOG, port=None):
+    """
+    A Pin representation
+
+    :arg board: The board of this pin
+    :type board: Board
+    :arg pin_number: Pin number of the pin
+    :type pin_number: int
+    :arg type: Type of this ping, ANALOG or DIGITAL
+    :type type: int
+    :arg port: Port of this pin or None
+    :type port: Port|None
+    """
+    board: Board
+    pin_number: int
+    type: int
+    port: Port|None
+    PWM_CAPABLE = False
+    reporting: bool = False
+    value = None
+    callback = None
+
+    def __init__(self, board: Board, pin_number: int, type: int = ANALOG, port: Port|None = None):
         self.board = board
         self.pin_number = pin_number
         self.type = type
         self.port = port
-        self.PWM_CAPABLE = False
         self._mode = (type == DIGITAL and OUTPUT or INPUT)
-        self.reporting = False
-        self.value = None
-        self.callback = None
 
     def __str__(self):
         type = {ANALOG: 'Analog', DIGITAL: 'Digital'}[self.type]
@@ -596,10 +655,10 @@ class Pin(object):
         """
         Register a callback to read from an analogue or digital port
 
-        :arg value: callback with one argument which receives the data:
-        boolean if the pin is digital, or 
-        float from 0 to 1 if the pin is an analgoue input
-        """        
+        :arg _callback: callback with one argument which receives the data:
+            boolean if the pin is digital, or 
+            float from 0 to 1 if the pin is an analgoue input
+        """
         self.callback = _callback
 
     def unregiser_callback(self):
@@ -615,7 +674,7 @@ class Pin(object):
         :arg value: Uses value as a boolean if the pin is in output mode, or
             expects a float from 0 to 1 if the pin is in PWM mode. If the pin
             is in SERVO the value should be in degrees.
-
+        :type value: float
         """
         if self.mode is UNAVAILABLE:
             raise IOError("{0} can not be used through Firmata".format(self))
