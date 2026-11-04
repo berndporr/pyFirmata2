@@ -10,3 +10,11 @@
   - Servo
 
 There is also a scanner for COM ports.
+
+## Dependencies
+
+```
+pip install matplotlib
+pip install pyqtgraph
+pip install pyqt6
+```

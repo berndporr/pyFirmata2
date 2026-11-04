@@ -34,7 +34,7 @@ class RealtimePlotWindow:
         self.ringbuffer = []
         # add any initialisation code here (filters etc)
         # start the animation
-        self.ani = animation.FuncAnimation(self.fig, self.update, interval=100)
+        self.ani = animation.FuncAnimation(self.fig, self.update, interval=100, cache_frame_data=False)
 
     # updates the plot
     def update(self, data):
